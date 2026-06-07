@@ -87,33 +87,29 @@ export const ARView: React.FC<ARViewProps> = memo(({ glbSrc, usdzSrc, poster, al
 
   const sceneViewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(absoluteUrl(glbSrc))}&mode=ar_only`;
 
+  const isMobile = isIOS || isAndroid;
+
   return (
     <div>
-      {/* 3D Display Area */}
-      <div ref={containerRef} className="relative w-full h-[400px] md:h-[450px] bg-cream-dark rounded-xl overflow-hidden shadow-inner group">
-        {isIOS ? (
+      {/* 3D Display Area — no overlay buttons (avoids duplication) */}
+      <div ref={containerRef} className="relative w-full h-[400px] md:h-[450px] bg-cream-dark rounded-xl overflow-hidden shadow-inner">
+        {isMobile ? (
+          // Mobile: show poster as preview (no AR button overlay — button is below)
           <>
-            {poster ? <img src={poster} alt={alt} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Smartphone size={48} className="text-gold/30" /></div>}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5 text-center">
-              <p className="text-white/80 text-sm mb-3 font-medium">Tap to view in AR</p>
-              <a href={absoluteUrl(usdzSrc)} rel="ar" className="inline-flex items-center gap-2.5 bg-gradient-to-r from-gold to-gold-light text-white px-8 py-3.5 rounded-full shadow-2xl hover:from-brown-dark hover:to-brown-dark transition-all transform active:scale-95 font-bold text-base ring-4 ring-white/30">
-                <Smartphone size={20} /> VIEW IN AR
-              </a>
-            </div>
-          </>
-        ) : isAndroid ? (
-          <>
-            {poster ? <img src={poster} alt={alt} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Smartphone size={48} className="text-gold/30" /></div>}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5 text-center">
-              <p className="text-white/80 text-sm mb-3 font-medium">Tap to view in AR</p>
-              <a href={sceneViewerUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2.5 bg-gradient-to-r from-gold to-gold-light text-white px-8 py-3.5 rounded-full shadow-2xl hover:from-brown-dark hover:to-brown-dark transition-all transform active:scale-95 font-bold text-base ring-4 ring-white/30">
-                <Smartphone size={20} /> VIEW IN AR
-              </a>
+            {poster ? (
+              <img src={poster} alt={alt} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Smartphone size={48} className="text-gold/30" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+            <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full pointer-events-none">
+              <p className="text-xs text-white font-bold tracking-wider uppercase">3D Preview</p>
             </div>
           </>
         ) : (
+          // Desktop: model-viewer with loading/error
           <>
             {state === 'loading' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-cream-dark z-10 px-6">
@@ -159,7 +155,7 @@ export const ARView: React.FC<ARViewProps> = memo(({ glbSrc, usdzSrc, poster, al
                     touch-action="pan-y"
                     style={{ width: '100%', height: '100%', display: 'block', minHeight: '400px' }}
                   >
-                    <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full pointer-events-none">
+                    <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full pointer-events-none">
                       <p className="text-xs text-white font-bold tracking-wider uppercase">3D Preview</p>
                     </div>
                   </model-viewer>
@@ -168,8 +164,7 @@ export const ARView: React.FC<ARViewProps> = memo(({ glbSrc, usdzSrc, poster, al
                   <div className="absolute inset-0 flex items-center justify-center bg-cream-dark">
                     <div className="text-center px-6">
                       <Smartphone size={48} className="text-gold/30 mx-auto mb-3" />
-                      <p className="text-sm text-muted font-medium mb-1">AR available on mobile</p>
-                      <p className="text-xs text-muted/40">Open this page on your phone</p>
+                      <p className="text-sm text-muted font-medium mb-1">Loading 3D viewer...</p>
                     </div>
                   </div>
                 )}
@@ -179,7 +174,7 @@ export const ARView: React.FC<ARViewProps> = memo(({ glbSrc, usdzSrc, poster, al
         )}
       </div>
 
-      {/* View in AR — auto-detects platform */}
+      {/* View in AR — single button, no duplicates */}
       <div className="mt-3 text-center">
         {isIOS ? (
           <a href={absoluteUrl(usdzSrc)} rel="ar" className="inline-flex items-center gap-2 bg-gold text-white px-8 py-3.5 rounded-full text-sm font-bold uppercase tracking-wider shadow-xl hover:bg-brown-dark transition-all active:scale-[0.97]">
