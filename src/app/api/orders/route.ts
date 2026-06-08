@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder, getNextOrderNumber, getAllOrders, getOrderById, updateOrderStatus } from "@/lib/db/database";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {

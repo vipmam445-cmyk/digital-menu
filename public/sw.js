@@ -1,6 +1,6 @@
 const CACHE_NAME = 'elshaday-static-v2';
-const AR_CACHE = 'elshaday-ar-v1';
 const IMAGE_CACHE = 'elshaday-images-v1';
+const ASSET_CACHE = 'elshaday-assets-v1';
 
 const STATIC_ASSETS = [
   '/',
@@ -20,13 +20,14 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  const isGLB = url.pathname.endsWith('.glb');
-  const isUSDZ = url.pathname.endsWith('.usdz');
-  const isImage = url.pathname.match(/\.(png|jpg|jpeg|svg|webp)$/i);
-  const isModel = isGLB || isUSDZ;
+  const path = url.pathname;
 
-  if (isModel) {
-    event.respondWith(cacheFirst(event.request, AR_CACHE));
+  const isImage = path.match(/\.(png|jpg|jpeg|svg|webp|avif|ico)$/i);
+  const isStaticAsset = path.match(/\/_next\/static\/.+\.(js|css)$/);
+  const isFont = path.match(/\.(woff2?|ttf|otf|eot)$/i);
+
+  if (isStaticAsset || isFont) {
+    event.respondWith(cacheFirst(event.request, ASSET_CACHE));
     return;
   }
 

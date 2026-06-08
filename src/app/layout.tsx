@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
-import Script from "next/script";
 import AppInit from "@/components/AppInit";
 
 export const metadata: Metadata = {
@@ -36,15 +35,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;600;700&family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
-        <link rel="preconnect" href="https://ajax.googleapis.com" crossOrigin="anonymous" />
       </head>
       <body>
         <AppInit />
-        <Script 
-          src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"
-          type="module"
-          strategy="afterInteractive"
-        />
         <LanguageProvider>
           <CartProvider>
             {children}

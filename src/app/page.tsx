@@ -4,14 +4,13 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart, CartItem } from "@/context/CartContext";
-import { menuItems as defaultMenuItems, MenuItem } from "@/data/menuData";
+import { MenuItem } from "@/data/menuData";
 import { Language } from "@/data/translations";
 import { cn } from "@/lib/utils";
 import {
-  Search, X, Menu, Globe, ChevronDown, Star, ShoppingCart, Plus, Minus, Trash2, View, Shield, Smartphone,
+  Search, X, Menu, Globe, ChevronDown, Star, ShoppingCart, Plus, Minus, Trash2, Shield,
 } from "lucide-react";
-import { ARView } from "@/components/ARView";
-import { preloadARModels, cacheAllImages } from "@/lib/cache";
+import { getAllMenuItems, getAllReviews, subscribeToMenuItems } from "@/lib/db/database";
 
 const LANGUAGES: { code: Language; label: string }[] = [
   { code: "en", label: "English" },
@@ -59,7 +58,8 @@ export default function Home() {
   const [drinkSub, setDrinkSub] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [items, setItems] = useState<MenuItem[]>(defaultMenuItems);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fastingFilter, setFastingFilter] = useState("all");
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [drinkDropdownOpen, setDrinkDropdownOpen] = useState(false);
@@ -71,70 +71,39 @@ export default function Home() {
 
   const [showCart, setShowCart] = useState(false);
 
+  // Load data from Supabase + real-time subscription
+  useEffect(() => {
+    async function load() {
+      try {
+        const [menuData, reviewData] = await Promise.all([
+          getAllMenuItems(),
+          getAllReviews(),
+        ]);
+        setItems(menuData);
+        setReviews(reviewData);
+      } catch (e) {
+        console.error("Failed to load from Supabase", e);
+      }
+      setLoading(false);
+    }
+    load();
+
+    // Real-time: menu items update automatically
+    const channel = subscribeToMenuItems(async () => {
+      try {
+        const fresh = await getAllMenuItems();
+        setItems(fresh);
+      } catch {}
+    });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     if (showSearch && searchRef.current) searchRef.current.focus();
   }, [showSearch]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("menu_items");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const merged = defaultMenuItems.map(d => {
-          const s = parsed.find((p: any) => p.id === d.id);
-          return s ? { ...d, ...s } : d;
-        });
-        const extra = parsed.filter((p: any) => !defaultMenuItems.find((d) => d.id === p.id));
-        setItems([...merged, ...extra]);
-      } catch { setItems(defaultMenuItems); }
-    }
-    const storedReviews = localStorage.getItem("menu_reviews");
-    if (storedReviews) {
-      try { setReviews(JSON.parse(storedReviews)); } catch { }
-    }
-    fetch("/.netlify/functions/menu-data").then((r) => r.json()).then((apiItems) => {
-      if (apiItems && apiItems.length > 0) {
-        const merged = defaultMenuItems.map(d => {
-          const s = apiItems.find((p: any) => p.id === d.id);
-          return s ? { ...d, ...s } : d;
-        });
-        const extra = apiItems.filter((p: any) => !defaultMenuItems.find((d) => d.id === p.id));
-        const full = [...merged, ...extra];
-        setItems(full);
-        localStorage.setItem("menu_items", JSON.stringify(full));
-      }
-    }).catch(() => {});
-    fetch("/.netlify/functions/reviews").then((r) => r.json()).then((apiReviews) => {
-      if (apiReviews && apiReviews.length > 0) {
-        setReviews(apiReviews);
-        localStorage.setItem("menu_reviews", JSON.stringify(apiReviews));
-      }
-    }).catch(() => {});
-
-    // Preload AR models and cache external images
-    const arModels = defaultMenuItems.filter(i => i.arModel).map(i => i.arModel!);
-    if (arModels.length > 0) {
-      preloadARModels(arModels);
-      arModels.forEach(m => {
-        const link = document.createElement('link');
-        link.rel = 'preload'; link.as = 'fetch'; link.href = m.glb; link.crossOrigin = 'anonymous';
-        document.head.appendChild(link);
-        const link2 = document.createElement('link');
-        link2.rel = 'preload'; link2.as = 'fetch'; link2.href = m.usdz; link2.crossOrigin = 'anonymous';
-        document.head.appendChild(link2);
-      });
-    }
-    const extImages = defaultMenuItems.filter(i => i.image.startsWith('http')).map(i => i.image);
-    if (extImages.length > 0) cacheAllImages(extImages);
-    // Preload local food images (first few for faster LCP)
-    defaultMenuItems.slice(0, 8).forEach(i => {
-      if (!i.image.startsWith('http')) {
-        const link = document.createElement('link');
-        link.rel = 'preload'; link.as = 'image'; link.href = i.image;
-        document.head.appendChild(link);
-      }
-    });
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -176,6 +145,31 @@ export default function Home() {
   }, [category, drinkSub, fastingFilter, searchQuery, language, items]);
 
   const cartItemCount = cart.totalItems;
+
+  // Preload first few images for LCP
+  useEffect(() => {
+    if (items.length === 0) return;
+    items.slice(0, 8).forEach((i) => {
+      if (i.image && !i.image.startsWith("http")) {
+        const link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "image";
+        link.href = i.image;
+        document.head.appendChild(link);
+      }
+    });
+  }, [items]);
+
+  if (loading) {
+    return (
+      <div className="luxury-bg flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-gold/30 border-t-gold rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted text-sm">Loading menu...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="luxury-bg">
@@ -444,19 +438,6 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                 </div>
                 <div className="p-5">
-                  {selectedItem.arModel && (
-                    <div className="mb-6">
-                      <h4 className="text-xs font-heading text-gold uppercase tracking-[0.15em] mb-3 flex items-center gap-1.5 font-semibold">
-                        <View size={14} /> 3D AR Experience
-                      </h4>
-                      <ARView 
-                        glbSrc={selectedItem.arModel.glb} 
-                        usdzSrc={selectedItem.arModel.usdz} 
-                        alt={(selectedItem.name[language] ?? selectedItem.name.en)} 
-                        poster={selectedItem.image}
-                      />
-                    </div>
-                  )}
                   <h2 className="text-2xl font-item text-black font-semibold tracking-wide">{(selectedItem.name[language] ?? selectedItem.name.en)}</h2>
                   <p className="text-base text-black/70 leading-relaxed mt-3">{(selectedItem.description[language] ?? selectedItem.description.en)}</p>
                   <div className="mt-6 pt-4 border-t border-border-warm">
@@ -522,13 +503,15 @@ export default function Home() {
                       </div>
                       <textarea placeholder={t.shareThoughts} value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} rows={2} className="w-full bg-white rounded-xl px-3 py-2.5 text-sm text-black placeholder-muted/40 border border-border-warm focus:outline-none focus:border-gold/50 transition-colors resize-none mb-2" />
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (!reviewForm.author.trim() || !reviewForm.comment.trim()) return;
                           const newReview: Review = { id: Date.now().toString(), itemId: selectedItem.id, author: reviewForm.author.trim(), rating: reviewForm.rating, comment: reviewForm.comment.trim(), date: new Date().toLocaleDateString() };
                           const updated = [...reviews, newReview];
                           setReviews(updated);
-                          localStorage.setItem("menu_reviews", JSON.stringify(updated));
-                          fetch("/.netlify/functions/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newReview) }).catch(() => {});
+                          try {
+                            const { addReview } = await import("@/lib/db/database");
+                            await addReview(newReview);
+                          } catch {}
                           setReviewForm({ author: "", rating: 5, comment: "" });
                         }}
                         className="w-full py-2.5 text-xs tracking-wider uppercase bg-gold/15 hover:bg-gold/25 text-gold font-semibold rounded-xl transition-colors border border-gold/20"
@@ -543,7 +526,7 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {/* ===== STICKY CART BUTTON - SHOWS TOTAL ===== */}
+        {/* ===== STICKY CART BUTTON ===== */}
         {cartItemCount > 0 && (
           <div className="sticky bottom-0 z-30 px-4 pb-3 pt-1">
             <button
@@ -565,7 +548,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ===== SIMPLE CART MODAL - JUST ITEMS + TOTAL ===== */}
+        {/* ===== CART MODAL ===== */}
         <AnimatePresence>
           {showCart && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setShowCart(false)}>
@@ -694,11 +677,6 @@ function MenuItemRow({ item, language, t, reviews, onClick, delay, onAddToCart }
           <div className="flex flex-col gap-2">
             <div className="w-20 h-20 md:w-24 md:h-24 flex-shrink-0 rounded-xl overflow-hidden bg-cream-dark border border-border-warm/60 opacity-80 group-hover:opacity-100 transition-all duration-300 group-hover:border-gold/30 group-hover:shadow-[0_0_12px_rgba(192,128,16,0.1)] relative">
               <img src={item.image} alt={(item.name[language] ?? item.name.en)} className="w-full h-full object-cover" loading="lazy" />
-              {item.arModel && (
-                <div className="absolute top-1 right-1 bg-gold text-white text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1 shadow-md z-10">
-                  <Smartphone size={10} /> 3D
-                </div>
-              )}
             </div>
           </div>
         </div>

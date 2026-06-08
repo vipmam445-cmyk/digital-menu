@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAllReviews, addReview, deleteReview } from "@/lib/db/database";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {

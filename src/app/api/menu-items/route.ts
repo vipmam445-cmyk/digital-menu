@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getAllMenuItems, replaceAllMenuItems } from "@/lib/db/database";
+import { getAllMenuItems, upsertMenuItems } from "@/lib/db/database";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -15,7 +15,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const items = await request.json();
-    await replaceAllMenuItems(items);
+    await upsertMenuItems(items);
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ success: false, error: String(e) }, { status: 400 });

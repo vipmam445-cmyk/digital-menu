@@ -8,10 +8,9 @@ import { Language } from "@/data/translations";
 import { cn } from "@/lib/utils";
 import {
   Search, X, Clock, Flame, Snowflake, Shield,
-  ChevronLeft, Star, Globe, UtensilsCrossed, View, Smartphone, ShoppingCart, Plus
+  ChevronLeft, Star, Globe, UtensilsCrossed, ShoppingCart, Plus
 } from "lucide-react";
 import Link from "next/link";
-import { ARView } from "./ARView";
 
 interface MenuViewProps {
   items: MenuItem[];
@@ -232,11 +231,6 @@ export const MenuView: React.FC<MenuViewProps> = ({
                         ))}
                       </div>
                     )}
-                    {item.arModel && (
-                      <div className="absolute top-1.5 right-1.5 bg-gold text-white text-[9px] font-bold px-2 py-1 rounded-md flex items-center gap-1.5 shadow-md">
-                        <Smartphone size={11} /> AR
-                      </div>
-                    )}
                     {item.category === "drinks" && (
                       <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-white/90 shadow-sm flex items-center justify-center">
                         {item.subcategory === "hot" ? (
@@ -322,20 +316,6 @@ export const MenuView: React.FC<MenuViewProps> = ({
               </div>
 
               <div className="p-5">
-                {selectedItem.arModel && (
-                  <div className="mb-6">
-                    <h4 className="text-[10px] font-bold text-black uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                      <View size={12} className="text-gold" /> 3D AR Experience
-                    </h4>
-                    <ARView 
-                      glbSrc={selectedItem.arModel.glb} 
-                      usdzSrc={selectedItem.arModel.usdz} 
-                      alt={(selectedItem.name[language] ?? selectedItem.name.en)} 
-                      poster={selectedItem.image}
-                    />
-                  </div>
-                )}
-
                 <p className="text-sm text-muted/70 leading-relaxed mb-5">{(selectedItem.description[language] ?? selectedItem.description.en)}</p>
 
                 <div className="flex items-center gap-4 mb-5 p-3.5 bg-cream-dark rounded-[14px]">

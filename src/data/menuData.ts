@@ -1,5 +1,12 @@
 import { Language } from "./translations";
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+}
+
 export interface MenuItem {
   id: string;
   category: 'breakfast' | 'lunch' | 'drinks';
@@ -19,10 +26,7 @@ export interface MenuItem {
   is_available: boolean;
   allergens: Record<'en' | 'am' | 'or', string[]> & Partial<Record<'zh', string[]>>;
   isFasting?: boolean;
-  arModel?: {
-    glb: string;
-    usdz: string;
-  };
+
 }
 
 export const menuItems: MenuItem[] = [
@@ -199,7 +203,6 @@ export const menuItems: MenuItem[] = [
     is_spicy: true,
     is_available: true,
     allergens: { en: ["Eggs", "Gluten"], am: ["እንቁላል", "ግሉተን"], or: ["Hanqaaquu", "Glutenii"] },
-    arModel: { glb: "/doro.glb", usdz: "/doro.usdz" }
   },
   {
     id: "l2",
@@ -219,7 +222,6 @@ export const menuItems: MenuItem[] = [
     is_spicy: true,
     is_available: true,
     allergens: { en: ["Dairy"], am: ["ወተት"], or: ["Aannan"] },
-    arModel: { glb: "/ktfo.glb", usdz: "/ktfo.usdz" }
   },
   {
     id: "l3",
@@ -1531,7 +1533,6 @@ export const menuItems: MenuItem[] = [
     is_spicy: false,
     is_available: true,
     allergens: { en: ["Gluten", "Dairy", "Eggs"], am: ["ግሉተን", "ወተት", "እንቁላል"], or: ["Glutenii", "Aannan", "Hanqaaquu"] },
-    arModel: { glb: "/desert.glb", usdz: "/desert.usdz" }
   },
   {
     id: "l76",
